@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<link href="/style.css" rel="stylesheet"></link>
+	</head>
+	<body>
+		<header>
+			<h1 id="main-title">@|polka-name|</h1>
+			<nav id="main-navigation">
+				<ul>
+					<li><a href="/">Home</a></li>
+					<li><a href="/tags">Tags</a></li>
+					<li><a href="/documents">Documents</a></li>
+				</ul>
+			</nav>
+		</header>
+		<main>
+				@in[node node-list]{ 
+					@node
+				}
+		</main>
+		<footer>
+			<small>—EOF</small>
+		</footer>
+	</body>
+</html>
