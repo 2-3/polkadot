@@ -8,7 +8,7 @@
 (define polka-name "Polkadot-Wiki")
 (define polka-file-root current-directory-for-user)
 (define document-header-end-token "===")
-(define polka-server-host "mysides.rip")
+(define polka-server-host "127.0.0.1")
 (define polka-server-port 8000)
 
 (struct document (title slug tags body))
@@ -128,11 +128,9 @@
 (define (tag-exists? tag)
   (hash-has-key? tag-index tag))
 
-; consumes a list of rendered template-nodes and displays a wiki page
 (define (make-wiki-response node-list)
   (make-response (include-template "templates/base.html")))
 
-; displays http-response
 (define (make-response template)
   (response/full
    200 #"Okay"
