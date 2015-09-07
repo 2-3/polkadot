@@ -19,15 +19,10 @@ main {
 	width: 62%;
 }
 	
-header, nav, article, footer {
-	
-	margin:0 auto;
-	}
-	
-article {
+main {
 	margin-top: 1.3em;
 	margin-bottom: 1.3em;
-	}
+}
 	
 footer {
 	text-align: right;
@@ -138,48 +133,44 @@ hr {
 	border-right: 0;
 }
 
-p#heart{
-	font-size: 2em;
-	line-height: 1;
-	text-align: center;
-	color: #ccc;
-}
-
-header > h1 {
+.main-header > h1 {
 	color: #fff;
 	float: left;
 	padding: 0.3em;
 	background-color: #599;
 }
 
-header {
+.main-header {
 	size: 100%;
 	border-top: 7px solid #599;
 	background-color: #377;
+	border-bottom: none;
+	margin: 0;
+	padding: 0;
 }
 
-header ul {
+.main-header ul {
 	padding-top: .3em;
 	padding-left: 1.3em;
 	display: inline-block;
 	margin: 0px;
 }
 
-header li, .tag-preview {
+.main-header li, .tag-preview {
 	list-style: none;
 	padding: 1em 0.3em;
 }
 
-header li {
+.main-header li {
 	float: left;
 	font-size: 1.2em;
 }
 
-header a:hover {
+.main-header a:hover {
 	color: #fff;
 }
 
-.introduction {
+header {
 	border-bottom: 1px solid #599;
 	margin-bottom: 1.3em;
 	padding-bottom: 1em;

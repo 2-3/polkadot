@@ -1,14 +1,16 @@
-<article class="node-detail">
-<div class="introduction">
-<h1>@|title|</h1>
-<nav>
-<small>Tagged as: </small>
-@in[tag tags]{ 
-<span class="tag-preview">
-	<a href="/tag/@|tag|">@|tag|</a>
-</span>
-}
-</nav>
-</div>
-@|body|
+<article>
+<header>
+	<h1>@|title|</h1>
+	<nav>
+		<small>Tagged as: </small>
+		@in[tag tags]{ 
+			<span class="tag-preview">
+				<a href="/tag/@|tag|">@|tag|</a>
+			</span>
+		}
+	</nav>
+</header>
+<section>
+	@|body|
+</section>
 </article>
