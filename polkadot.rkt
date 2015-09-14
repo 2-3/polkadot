@@ -3,15 +3,16 @@
 (require web-server/servlet
          web-server/servlet-env
          web-server/templates
-         markdown) 
+         markdown
+         racket/date) 
 
 (define polka-name "Polkadot-Wiki")
 (define polka-file-root current-directory-for-user)
 (define document-header-end-token "===")
 (define polka-server-host "127.0.0.1")
 (define polka-server-port 8000)
+(date-display-format 'iso-8601)
 
-(struct document (title slug tags body))
 (define document-index (make-hash))
 (define tag-index (make-hash))
 
@@ -53,8 +54,8 @@
 (define (render-tag-detail request tag-name)
   (if (tag-exists? tag-name)
      (let ((document-list (map
-                           (λ (doc)
-                             (cons (document-title doc) (document-slug doc)))
+                           (λ (document)
+                             (cons (hash-ref document "title") (hash-ref document "slug")))
                            (retrieve-documents-with-tag tag-name))))
        (make-wiki-response (include-template "templates/tag-detail.html")))
      (make-wiki-response (list (include-template "templates/404.html")))))
@@ -63,15 +64,20 @@
   (foldl (λ (xexpr html)
            (string-append html (xexpr->string xexpr))) "" (parse-markdown markdown-string)))
 
-(define (file->document document-file)
+(define (path->document document-path)
+  (call-with-input-file document-path
+    (λ (document-file)
   (define ns (make-base-namespace))
   (define document-list (string-split (port->string document-file) document-header-end-token))
   (call-with-input-string (car document-list) (λ (str) (port->list (λ (datum) (eval (read datum) ns)) str)))
-  (let* ((metadata (namespace-variable-value 'polka-metadata #t #f ns))
-         (title (hash-ref metadata "title"))
-         (slug (hash-ref metadata "slug"))
-         (tags (hash-ref metadata "tags")))
-    (document title slug tags (markdown->html (cadr document-list)))))
+  (define metadata (namespace-variable-value 'polka-metadata #t #f ns))
+    (hash
+     "title" (hash-ref metadata "title")
+     "slug" (hash-ref metadata "slug")
+     "tags" (hash-ref metadata "tags")
+     "date-modified" (file-or-directory-modify-seconds document-path)
+     "body" (markdown->html (cadr document-list))))
+    #:mode 'text))
 
 (define (document-file? file-path)
   (define path-string (path->string file-path))
@@ -82,21 +88,21 @@
   (hash-clear! tag-index)
   (current-directory (build-path (polka-file-root) "documents/"))
   (map
-   (λ (file)
-     (if (document-file? file)
-        (call-with-input-file file
-          (λ (document-port) (index-document (file->document document-port))) #:mode 'text)
-     '()))
+   (λ (file) (if (document-file? file) (index-document (path->document file)) '()))
    (directory-list (current-directory))))
+
+(define (directory-list-by-date-modified path)
+  (sort (directory-list path) (λ (x y) (if (< (file-or-directory-modify-seconds x) (file-or-directory-modify-seconds y)) #t #f))))
 
 (define (map/documents proc)
  (hash-map document-index (λ (slug document) (proc document))))
 
-(define (render-document-template polka-doc template-type)  
-  (let ((title (document-title polka-doc))
-        (slug (document-slug polka-doc))
-        (tags (document-tags polka-doc))
-        (body (document-body polka-doc)))
+(define (render-document-template document template-type)
+  (let ((title (hash-ref document "title"))
+        (slug (hash-ref document "slug"))
+        (tags (hash-ref document "tags"))
+        (date-modified (date->string (seconds->date (hash-ref document "date-modified"))))
+        (body (hash-ref document "body")))
     (cond
       ((equal? 'preview template-type) (include-template "templates/document-preview.html"))
       ((equal? 'detail template-type) (include-template "templates/document-detail.html"))
@@ -109,12 +115,12 @@
             (generate-document-index)
             (create-indexing-thread))))
 
-(define (index-document polka-doc)
+(define (index-document document)
   (map
    (λ (tag)
-     (hash-set! tag-index tag (cons polka-doc (hash-ref! tag-index tag '()))))
-   (document-tags polka-doc))
-  (hash-set! document-index (document-slug polka-doc) polka-doc))
+     (hash-set! tag-index tag (cons document (hash-ref! tag-index tag '()))))
+   (hash-ref document "tags"))
+  (hash-set! document-index (hash-ref document "slug") document))
 
 (define (retrieve-documents-with-tag tag)
   (hash-ref tag-index tag '()))
