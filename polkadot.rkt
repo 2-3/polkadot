@@ -32,9 +32,7 @@
 (define (render-document-list request)
   (make-wiki-response
    (cons (include-template "templates/document-introduction.html")
-        (map
-         (λ (doc) (render-document-template doc 'preview))
-         (document-list-by-date-modified (hash-values document-index))))))
+        (render-document-preview-list (hash-values document-index)))))
   
 ; /document/<string-arg>
 (define (render-document-detail request slug)
@@ -56,10 +54,7 @@
 (define (render-tag-detail request tag-name)
   (if (tag-exists? tag-name)
      (let ((document-list
-            (map
-             (λ (document)
-               (cons (hash-ref document "title") (hash-ref document "slug")))
-             (retrieve-documents-with-tag tag-name))))
+             (render-document-preview-list (retrieve-documents-with-tag tag-name))))
        (make-wiki-response (include-template "templates/tag-detail.html")))
      (make-wiki-response (list (include-template "templates/404.html")))))
 
@@ -107,6 +102,11 @@
       ((equal? 'preview template-type) (include-template "templates/document-preview.html"))
       ((equal? 'detail template-type) (include-template "templates/document-detail.html"))
       (else (include-template "templates/document-detail.html")))))
+
+(define (render-document-preview-list document-list)
+  (map
+         (λ (doc) (render-document-template doc 'preview))
+         (document-list-by-date-modified document-list)))
 
 (define (create-indexing-thread)
   (thread (λ ()
