@@ -32,7 +32,9 @@
 (define (render-document-list request)
   (make-wiki-response
    (cons (include-template "templates/document-introduction.html")
-        (map/documents (λ (doc) (render-document-template doc 'preview))))))
+        (map
+         (λ (doc) (render-document-template doc 'preview))
+         (document-list-by-date-modified (hash-values document-index))))))
   
 ; /document/<string-arg>
 (define (render-document-detail request slug)
@@ -53,10 +55,11 @@
 ; /tag/<string-arg>
 (define (render-tag-detail request tag-name)
   (if (tag-exists? tag-name)
-     (let ((document-list (map
-                           (λ (document)
-                             (cons (hash-ref document "title") (hash-ref document "slug")))
-                           (retrieve-documents-with-tag tag-name))))
+     (let ((document-list
+            (map
+             (λ (document)
+               (cons (hash-ref document "title") (hash-ref document "slug")))
+             (retrieve-documents-with-tag tag-name))))
        (make-wiki-response (include-template "templates/tag-detail.html")))
      (make-wiki-response (list (include-template "templates/404.html")))))
 
@@ -91,11 +94,8 @@
    (λ (file) (if (document-file? file) (index-document (path->document file)) '()))
    (directory-list (current-directory))))
 
-(define (directory-list-by-date-modified path)
-  (sort (directory-list path) (λ (x y) (if (< (file-or-directory-modify-seconds x) (file-or-directory-modify-seconds y)) #t #f))))
-
-(define (map/documents proc)
- (hash-map document-index (λ (slug document) (proc document))))
+(define (document-list-by-date-modified document-list)
+  (sort document-list (λ (x y) (if (< (hash-ref x "date-modified") (hash-ref y "date-modified")) #t #f))))
 
 (define (render-document-template document template-type)
   (let ((title (hash-ref document "title"))
