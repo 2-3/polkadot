@@ -1,4 +1,6 @@
 #lang racket
+; POLKADOT -- lightweight personal wiki.
+; This file should be provided with a copy of the MIT license, as it falls under it.
 
 (require web-server/servlet
          web-server/servlet-env
@@ -44,10 +46,7 @@
 (define (render-tag-list request)
   (define rendered-tag-list
     (cons (include-template "templates/tag-introduction.html")
-      (map
-       (λ (tag)
-         (include-template "templates/tag-preview.html"))
-       (hash-keys tag-index))))
+      (map (λ (tag) (include-template "templates/tag-preview.html")) (hash-keys tag-index))))
   (make-wiki-response rendered-tag-list))
 
 ; /tag/<string-arg>
@@ -58,24 +57,35 @@
        (make-wiki-response (include-template "templates/tag-detail.html")))
      (make-wiki-response (list (include-template "templates/404.html")))))
 
-(define (markdown->html markdown-string)
-  (foldl (λ (xexpr html)
-           (string-append html (xexpr->string xexpr))) "" (parse-markdown markdown-string)))
-
 (define (path->document document-path)
   (call-with-input-file document-path
     (λ (document-file)
-  (define ns (make-base-namespace))
-  (define document-list (string-split (port->string document-file) document-header-end-token))
-  (call-with-input-string (car document-list) (λ (str) (port->list (λ (datum) (eval (read datum) ns)) str)))
-  (define metadata (namespace-variable-value 'polka-metadata #t #f ns))
-    (hash
-     "title" (hash-ref metadata "title")
-     "slug" (hash-ref metadata "slug")
-     "tags" (hash-ref metadata "tags")
-     "date-modified" (file-or-directory-modify-seconds document-path)
-     "body" (markdown->html (cadr document-list))))
+      (define ns (make-base-namespace))
+      (define document-list (string-split (port->string document-file) document-header-end-token))
+      (call-with-input-string (car document-list) (λ (str) (port->list (λ (datum) (eval (read datum) ns)) str)))
+      (define metadata (namespace-variable-value 'polka-metadata #t #f ns))
+      (hash
+       "title" (hash-ref metadata "title")
+       "slug" (hash-ref metadata "slug")
+       "tags" (hash-ref metadata "tags")
+       "date-modified" (file-or-directory-modify-seconds document-path)
+       "body" (markdown->html (cadr document-list))))
     #:mode 'text))
+
+(define (render-document-template document template-type)
+  (let ((title (hash-ref document "title"))
+        (slug (hash-ref document "slug"))
+        (tags (hash-ref document "tags"))
+        (date-modified (date->string (seconds->date (hash-ref document "date-modified"))))
+        (body (hash-ref document "body")))
+    (cond
+      ((equal? 'preview template-type) (include-template "templates/document-preview.html"))
+      ((equal? 'detail template-type) (include-template "templates/document-detail.html"))
+      (else (include-template "templates/document-detail.html")))))
+
+(define (markdown->html markdown-string)
+  (foldl (λ (xexpr html)
+           (string-append html (xexpr->string xexpr))) "" (parse-markdown markdown-string)))
 
 (define (document-file? file-path)
   (define path-string (path->string file-path))
@@ -92,17 +102,6 @@
 (define (document-list-by-date-modified document-list)
   (sort document-list (λ (x y) (if (< (hash-ref x "date-modified") (hash-ref y "date-modified")) #t #f))))
 
-(define (render-document-template document template-type)
-  (let ((title (hash-ref document "title"))
-        (slug (hash-ref document "slug"))
-        (tags (hash-ref document "tags"))
-        (date-modified (date->string (seconds->date (hash-ref document "date-modified"))))
-        (body (hash-ref document "body")))
-    (cond
-      ((equal? 'preview template-type) (include-template "templates/document-preview.html"))
-      ((equal? 'detail template-type) (include-template "templates/document-detail.html"))
-      (else (include-template "templates/document-detail.html")))))
-
 (define (render-document-preview-list document-list)
   (map
          (λ (doc) (render-document-template doc 'preview))
@@ -116,10 +115,9 @@
             (create-indexing-thread))))
 
 (define (index-document document)
-  (map
-   (λ (tag)
-     (hash-set! tag-index tag (cons document (hash-ref! tag-index tag '()))))
-   (hash-ref document "tags"))
+  (map (λ (tag)
+         (hash-set! tag-index tag (cons document (hash-ref! tag-index tag '()))))
+      (hash-ref document "tags"))
   (hash-set! document-index (hash-ref document "slug") document))
 
 (define (retrieve-documents-with-tag tag)
