@@ -3,10 +3,12 @@
 ; This file should be provided with a copy of the MIT license, as it falls under it.
 
 (require web-server/servlet
-         web-server/servlet-env
-         web-server/templates
-         markdown
-         racket/date) 
+        web-server/servlet-env
+        web-server/templates
+        racket/date
+        parser-tools/lex
+        (prefix-in : parser-tools/lex-sre)
+        markdown) 
 
 (define polka-name "Polkadot-Wiki")
 (define polka-file-root current-directory-for-user)
@@ -40,7 +42,7 @@
 (define (render-document-detail request slug)
   (if (document-indexed? slug)
      (make-wiki-response (render-document-template (retrieve-document slug) 'detail))
-     (make-wiki-response (list (include-template "templates/404.html")))))
+     (make-wiki-response (include-template "templates/404.html"))))
 
 ; /tags
 (define (render-tag-list request)
@@ -55,7 +57,7 @@
      (let ((document-list
              (render-document-preview-list (retrieve-documents-with-tag tag-name))))
        (make-wiki-response (include-template "templates/tag-detail.html")))
-     (make-wiki-response (list (include-template "templates/404.html")))))
+     (make-wiki-response (include-template "templates/404.html"))))
 
 (define (path->document document-path)
   (call-with-input-file document-path
@@ -148,6 +150,7 @@
 (serve/servlet polka-dispatch
                #:quit? #t
                #:listen-ip polka-server-host
+               #:port polka-server-port
                #:launch-browser? #f
                #:file-not-found-responder (λ (req) (make-wiki-response (list (include-template "templates/404.html"))))
                #:extra-files-paths (list (build-path (polka-file-root) "htdocs"))
