@@ -1,14 +1,11 @@
 #lang racket
 ; POLKADOT -- lightweight personal wiki.
-; This file should be provided with a copy of the MIT license, as it falls under it.
 
 (require web-server/servlet
         web-server/servlet-env
         web-server/templates
         racket/date
-        parser-tools/lex
-        (prefix-in : parser-tools/lex-sre)
-        markdown) 
+        markdown)
 
 (define polka-name "Polkadot-Wiki")
 (define polka-file-root current-directory-for-user)
@@ -37,7 +34,7 @@
   (make-wiki-response
    (cons (include-template "templates/document-introduction.html")
         (render-document-preview-list (hash-values document-index)))))
-  
+
 ; /document/<string-arg>
 (define (render-document-detail request slug)
   (if (document-indexed? slug)
@@ -59,20 +56,26 @@
        (make-wiki-response (include-template "templates/tag-detail.html")))
      (make-wiki-response (include-template "templates/404.html"))))
 
+(define (string-split-at-first string (seperator " "))
+  (define string-list (string-split string seperator))
+  (cons (car string-list) (string-join (cdr string-list) seperator)))
+
+(define (extract-metadata document-header)
+  (define ns (make-base-namespace))
+  (call-with-input-string document-header (λ (str) (port->list (λ (datum) (eval (read datum) ns)) str)))
+  (namespace-variable-value 'polka-metadata #t #f ns))
+
 (define (path->document document-path)
   (call-with-input-file document-path
     (λ (document-file)
-      (define ns (make-base-namespace))
-      (define document-list (string-split (port->string document-file) document-header-end-token))
-      (call-with-input-string (car document-list) (λ (str) (port->list (λ (datum) (eval (read datum) ns)) str)))
-      (define metadata (namespace-variable-value 'polka-metadata #t #f ns))
+      (define document-list (string-split-at-first (port->string document-file) document-header-end-token))
+      (define metadata (extract-metadata (car document-list)))
       (hash
        "title" (hash-ref metadata "title")
        "slug" (hash-ref metadata "slug")
        "tags" (hash-ref metadata "tags")
        "date-modified" (file-or-directory-modify-seconds document-path)
-       "body" (markdown->html (cadr document-list))))
-    #:mode 'text))
+       "body" (render-wiki-links (markdown->html (cdr document-list))))) #:mode 'text))
 
 (define (render-document-template document template-type)
   (let ((title (hash-ref document "title"))
@@ -80,14 +83,33 @@
         (tags (hash-ref document "tags"))
         (date-modified (date->string (seconds->date (hash-ref document "date-modified"))))
         (body (hash-ref document "body")))
-    (cond
-      ((equal? 'preview template-type) (include-template "templates/document-preview.html"))
-      ((equal? 'detail template-type) (include-template "templates/document-detail.html"))
-      (else (include-template "templates/document-detail.html")))))
+    (match template-type
+      ('preview (include-template "templates/document-preview.html"))
+      ('detail (include-template "templates/document-detail.html"))
+      (_ (include-template "templates/document-detail.html")))))
 
 (define (markdown->html markdown-string)
   (foldl (λ (xexpr html)
            (string-append html (xexpr->string xexpr))) "" (parse-markdown markdown-string)))
+
+(define (rewrite-wiki-link target)
+  (call/ec (λ (continuation)
+  (string-append
+    (match (string-ref target 0)
+      (#\@ "/document/")
+      (#\# "/tag/")
+      (#\_ "/static/")
+      (#\^ (continuation #f))
+      (_ target))
+  (substring target 1)))))
+
+(define (render-wiki-links string)
+  (regexp-replace* #rx"\\[\\[(.*?)\\|(.*?)\\]\\]" string
+    (λ (all short-link title) (call/ec (λ (continuation)
+      (define link (or
+        (rewrite-wiki-link short-link)
+        (continuation (string-append (substring all 0 2) (substring all 3)))))
+      (string-append "<a href=\"" link "\">" title "</a>"))))))
 
 (define (document-file? file-path)
   (define path-string (path->string file-path))
@@ -117,8 +139,7 @@
             (create-indexing-thread))))
 
 (define (index-document document)
-  (map (λ (tag)
-         (hash-set! tag-index tag (cons document (hash-ref! tag-index tag '()))))
+  (map (λ (tag) (hash-set! tag-index tag (cons document (hash-ref! tag-index tag '()))))
       (hash-ref document "tags"))
   (hash-set! document-index (hash-ref document "slug") document))
 
@@ -153,5 +174,5 @@
                #:port polka-server-port
                #:launch-browser? #f
                #:file-not-found-responder (λ (req) (make-wiki-response (list (include-template "templates/404.html"))))
-               #:extra-files-paths (list (build-path (polka-file-root) "htdocs"))
+               #:extra-files-paths (list (build-path (polka-file-root) "static"))
                #:servlet-regexp (regexp ""))
