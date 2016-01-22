@@ -1,0 +1,31 @@
+(define polka-metadata (hash
+"title" "Introduction"
+"slug" "introduction"
+"tags" (list "initial-documents" "introduction")))
+===
+Documents consist of a `header` and a `body`. They are markdown-formatted with the exception of the header, which consists of plain old S-expressions.
+Header and body are seperated by a token -- per default "===" -- which can be configured in `polkadot.rkt`.
+
+##Header
+The documents header is a S-expression containing Racket code. It gets evaluated in a fresh namespace and should define a hash named `polka-metadata` which contains the documents metadata.
+Thus the evaluation of headers can have side effects.
+
+Headers have the following fields:
+
+- `title`: Title of the document.
+- `slug`: path the document will be reachable at. Unique identifier.
+- `tags`: A list with every tag the document should be indexed under.
+
+It is pretty simple to extend headers with additional fields. Take a look at the functions `path->document` and `render-document-template` for details.
+
+##Body
+The documents body is markdown-formatted. Additionally, Wiki-Style links may be used to link to tags, documents and static files.
+The general format is `[[^link-target|title]]`.
+
+####Examples:
+
+- `[[^#foo|Foo]]` yields a link the tag `foo`.
+- `[[^@bar|Bar]]` yields a link to the document with the slug `bar`.
+- `[[^_baz.png|Baz]]` yields a link to the static file `baz.png`.
+- `[[^^qux|Qux]]` escapes the form, allowing it to be written literally.
+- All other characters will cause no rewriting of the links target.
