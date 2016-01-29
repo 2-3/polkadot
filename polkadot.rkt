@@ -100,7 +100,7 @@
       (#\# "/tag/")
       (#\_ "/static/")
       (#\^ (continuation #f))
-      (_ target))
+      (_ (continuation target)))
   (substring target 1)))))
 
 (define (render-wiki-links string)
