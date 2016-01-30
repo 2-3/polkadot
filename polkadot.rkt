@@ -4,6 +4,7 @@
 (require web-server/servlet
         web-server/servlet-env
         web-server/templates
+        web-server/dispatchers/dispatch-log
         racket/date
         markdown)
 
@@ -175,4 +176,6 @@
                #:launch-browser? #f
                #:file-not-found-responder (λ (req) (make-wiki-response (list (include-template "templates/404.html"))))
                #:extra-files-paths (list (build-path (polka-file-root) "static"))
-               #:servlet-regexp (regexp ""))
+               #:servlet-regexp (regexp "")
+               #:log-file (string-append (path->string (polka-file-root)) "polkadot.log")
+               #:log-format (log-format->format 'apache-default))
