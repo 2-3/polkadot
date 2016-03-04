@@ -20,11 +20,11 @@
 
 (define-values (polka-dispatch request-url)
   (dispatch-rules
-   (("") render-index)
-   (("documents") render-document-list)
-   (("document" (string-arg)) render-document-detail)
-   (("tags") render-tag-list)
-   (("tag" (string-arg)) render-tag-detail)))
+   [("") render-index]
+   [("documents") render-document-list]
+   [("document" [string-arg]) render-document-detail]
+   [("tags") render-tag-list]
+   [("tag" [string-arg]) render-tag-detail]))
 
 ; /
 (define (render-index request)
@@ -79,15 +79,15 @@
        "body" (render-wiki-links (markdown->html (cdr document-list))))) #:mode 'text))
 
 (define (render-document-template document template-type)
-  (let ((title (hash-ref document "title"))
-        (slug (hash-ref document "slug"))
-        (tags (hash-ref document "tags"))
-        (date-modified (date->string (seconds->date (hash-ref document "date-modified"))))
-        (body (hash-ref document "body")))
+  (let ([title (hash-ref document "title")]
+        [slug (hash-ref document "slug")]
+        [tags (hash-ref document "tags")]
+        [date-modified (date->string (seconds->date (hash-ref document "date-modified")))]
+        [body (hash-ref document "body")])
     (match template-type
-      ('preview (include-template "templates/document-preview.html"))
-      ('detail (include-template "templates/document-detail.html"))
-      (_ (include-template "templates/document-detail.html")))))
+      ['preview (include-template "templates/document-preview.html")]
+      ['detail (include-template "templates/document-detail.html")]
+      [_ (include-template "templates/document-detail.html")])))
 
 (define (markdown->html markdown-string)
   (foldl (λ (xexpr html)
@@ -97,11 +97,11 @@
   (call/ec (λ (continuation)
   (string-append
     (match (string-ref target 0)
-      (#\@ "/document/")
-      (#\# "/tag/")
-      (#\_ "/static/")
-      (#\^ (continuation #f))
-      (_ (continuation target)))
+      [#\@ "/document/"]
+      [#\# "/tag/"]
+      [#\_ "/static/"]
+      [#\^ (continuation #f)]
+      [_ (continuation target)])
   (substring target 1)))))
 
 (define (render-wiki-links string)
