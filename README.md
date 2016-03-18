@@ -16,7 +16,7 @@ Since it's a simple piece of software, polkadot is easy to install;
 
 1. First you need to install the package "markdown" with raco: `raco pkg install markdown`
 2. Now you should take a look at `polkadot.rkt` and change the configuration variables to your liking.
-3. There's no further setup required, just write your documents and run the damn thing.
+3. There's no further setup required, just write your documents and run the thing.
 
 ##Usage
 At start polkadot will index all files in `documents/`.
@@ -24,3 +24,6 @@ It will continue to monitor this directory for any updated, added, or deleted fi
 Static files can be added to `static/`.
 
 You can find an introduction to writing documents in `introduction.polka`.
+
+##Support
+You'll find what you're looking for at either [Github](https://github.com/2-3/polkadot/) or, if IRC is your thing in \#polkadot on irc.freenode.net.
